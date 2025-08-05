@@ -79,10 +79,9 @@
                             <Grid x:Name="GridBtns" Background="#232228" Grid.Row="1" Width="Auto" Height="Auto" VerticalAlignment="Top" HorizontalAlignment="Stretch">
                                 <Button ToolTip="Open File" Click="openBtn_Click" Cursor="Hand" x:Name="openBtn" Content="&#xED25;" Height="30" Width="30" Style="{DynamicResource btnStyle2}" Background="#232228" Foreground="Gray" BorderThickness="0" FontFamily="/WpfMain;component/Assets/Fonts/#Segoe Fluent Icons" FontSize="14" HorizontalAlignment="Left" VerticalAlignment="Center"/>
                                 <Button ToolTip="Save As" Click="saveBtn_Click" Cursor="Hand" x:Name="saveBtn" Content="&#xE792;" Height="30" Width="30" Margin="30,0,0,0" Style="{DynamicResource btnStyle2}" Background="#232228" Foreground="Gray" BorderThickness="0" FontFamily="/WpfMain;component/Assets/Fonts/#Segoe Fluent Icons" FontSize="14" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                <Button ToolTip="Show Script List" Click="listBtn_Click" Cursor="Hand" x:Name="listBtn" Content="&#xEA55;" VerticalAlignment="Center" Height="30" Style="{DynamicResource btnStyle2}" Background="#232228" Foreground="Gray" BorderThickness="0" FontFamily="/WpfMain;component/Assets/Fonts/#Segoe Fluent Icons" HorizontalAlignment="Right" Width="30" FontSize="14"/>
+                                <Button ToolTip="Show Note List" Click="listBtn_Click" Cursor="Hand" x:Name="listBtn" Content="&#xEA55;" VerticalAlignment="Center" Height="30" Style="{DynamicResource btnStyle2}" Background="#232228" Foreground="Gray" BorderThickness="0" FontFamily="/WpfMain;component/Assets/Fonts/#Segoe Fluent Icons" HorizontalAlignment="Right" Width="30" FontSize="14"/>
                                 <Button ToolTip="To Do List"  Cursor="Hand" x:Name="ToDoList" Content="&#xE73A;" VerticalAlignment="Center" Height="30" Style="{DynamicResource btnStyle2}" Background="#232228" Foreground="Gray" BorderThickness="0" FontFamily="/WpfMain;component/Assets/Fonts/#Segoe Fluent Icons" HorizontalAlignment="Right" Width="30" FontSize="14" Margin="0,0,30,0" RenderTransformOrigin="0.5,0.5" Click="ToDoList_Click"/>
-                                <Button ToolTip="Saving Your Work by upload it to cloud"  Cursor="Hand" x:Name="Cloud_Saving" Content="&#xE753;" VerticalAlignment="Center" Height="30" Style="{DynamicResource btnStyle2}" Background="#232228" Foreground="Gray" BorderThickness="0" FontFamily="/WpfMain;component/Assets/Fonts/#Segoe Fluent Icons" HorizontalAlignment="Right" Width="30" FontSize="14" Margin="0,0,60,0" RenderTransformOrigin="0.5,0.5" Click="Cloud_Saving_Click" />
-                                <Button ToolTip="Save As" Cursor="Hand" x:Name="ExportToPDFBtn" Content="&#xEA90;" Height="30" Width="30" Margin="60,0,0,0" Style="{DynamicResource btnStyle2}" Background="#232228" Foreground="Gray" BorderThickness="0" FontFamily="/WpfMain;component/Assets/Fonts/#Segoe Fluent Icons" FontSize="14" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                <Button ToolTip="Export all notes and todolist to PDF file" Cursor="Hand" x:Name="ExportToPDFBtn" Content="&#xEA90;" Height="30" Width="30" Margin="60,0,0,0" Style="{DynamicResource btnStyle2}" Background="#232228" Foreground="Gray" BorderThickness="0" FontFamily="/WpfMain;component/Assets/Fonts/#Segoe Fluent Icons" FontSize="14" HorizontalAlignment="Left" VerticalAlignment="Center" Click="ExportToPDFBtn_Click"/>
                             </Grid>
                             <Border x:Name="ContentPanel"
                                     VerticalAlignment="Top"
@@ -203,7 +202,6 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Style.Triggers>
-                <!-- Hover -->
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#FF2D2D30"/>
                     <Setter Property="BorderBrush" Value="#FF3E3E42"/>
@@ -220,7 +218,11 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <TextBox x:Name="txtbox" TextWrapping="Wrap" Margin="0,82,-3,0" Background="#FF141419" Foreground="#FFECE7FF" FocusVisualStyle="{x:Null}" BorderBrush="{x:Null}"/>
+        <TextBox x:Name="txtbox" Margin="0,82,-3,0" Foreground="#FFECE7FF" FocusVisualStyle="{x:Null}" BorderBrush="{x:Null}" SelectionBrush="#FF494A69" SelectionOpacity="0.5" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True" AutoWordSelection="True">
+            <TextBox.Background>
+                <SolidColorBrush Color="#FF141419" Opacity="1"/>
+            </TextBox.Background>
+        </TextBox>
         <TabControl MouseLeftButtonDown="mainTabCtrl_MouseDown" x:Name="mainTabCtrl" Height="Auto" Width="Auto" Background="{x:Null}" BorderBrush="{x:Null}" Style="{DynamicResource modernTabs}" Foreground="Black" Margin="0,0,-3,0"/>
         <Grid x:Name="RenameFileGrid" Background="#80000000" Panel.ZIndex="999" Margin="0,72,-3,0" Visibility="Collapsed">
             <Border Background="#2A2A2E" CornerRadius="6" Padding="20" Width="300" Height="150"
@@ -236,10 +238,14 @@
             </Border>
         </Grid>
 
-        <Border CornerRadius="0,0,4,0" Background="#FF1B1A1F" Margin="0,72,-3,0" Width="0" x:Name="sideBar" HorizontalAlignment="Right">
+        <Border CornerRadius="0,0,4,0" Background="#FF1B1A1F" Margin="0,72,-3,0" Width="738" x:Name="sideBar" HorizontalAlignment="Right">
             <Grid HorizontalAlignment="Right" Width="738">
-                <Label Content="Notes" VerticalAlignment="Top" VerticalContentAlignment="Center" Width="200" Foreground="White" FontFamily="/WpfMain;component/Assets/Fonts/#Poppins" FontSize="14" Margin="0,2,0,0" Background="{x:Null}" Height="31" HorizontalContentAlignment="Center" HorizontalAlignment="Center"/>
-                <ScrollViewer Margin="2,33,2,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="323*"/>
+                    <ColumnDefinition Width="46*"/>
+                </Grid.ColumnDefinitions>
+                <Label Content="Notes" VerticalAlignment="Top" VerticalContentAlignment="Center" Width="200" Foreground="White" FontFamily="/WpfMain;component/Assets/Fonts/#Poppins" FontSize="14" Margin="269,2,0,0" Background="{x:Null}" Height="31" HorizontalContentAlignment="Center" HorizontalAlignment="Left"/>
+                <ScrollViewer Margin="2,33,2,2" Grid.ColumnSpan="2">
                     <ItemsControl x:Name="mainGridView">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -255,19 +261,85 @@
                                         <ContextMenu>
                                             <MenuItem Header="Rename" Click="RenameNote_Click"/>
                                             <MenuItem Header="Delete" Click="DeleteNote_Click"/>
+                                            <MenuItem Header="Tag Color">
+                                                <MenuItem Header="Green" Click="SetTagColor_Click" Tag="Green">
+                                                    <MenuItem.Icon>
+                                                        <Rectangle Width="15" Height="15" Fill="Green" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+
+                                                <MenuItem Header="Yellow" Click="SetTagColor_Click" Tag="Yellow">
+                                                    <MenuItem.Icon>
+                                                        <Rectangle Width="15" Height="15" Fill="Yellow" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+
+                                                <MenuItem Header="Red" Click="SetTagColor_Click" Tag="Red">
+                                                    <MenuItem.Icon>
+                                                        <Rectangle Width="15" Height="15" Fill="Red" Margin="0,0,5,0" VerticalAlignment="Center"/>
+
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+
+                                                <MenuItem Header="Purple" Click="SetTagColor_Click" Tag="Purple">
+                                                    <MenuItem.Icon>
+                                                        <Rectangle Width="15" Height="15" Fill="Purple" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+                                            </MenuItem>
+
                                         </ContextMenu>
                                     </Border.ContextMenu>
-                                    
+
 
                                     <StackPanel Margin="8">
-                                        <TextBlock Text="{Binding FileName}" FontWeight="Bold" Foreground="White" FontSize="14" />
+
+
+                                        <StackPanel Orientation="Horizontal">
+                                            <Rectangle Width="10" Height="10" Margin="0,0,5,0" Fill="{Binding TagColor}" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding FileName}" FontWeight="Bold" Foreground="White" FontSize="14" />
+                                        </StackPanel>
+
                                         <TextBlock Text="{Binding Preview}" FontSize="12" Foreground="Gray" TextWrapping="Wrap" MaxHeight="50" />
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
+
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
+                <TextBox x:Name="searchTextBox" HorizontalAlignment="Left" Margin="608,9,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" KeyUp="searchTextBox_KeyUp" Background="#FF232228" Grid.ColumnSpan="2" Foreground="#FFC9C9C9" TextChanged="searchTextBox_TextChanged"/>
+                <ComboBox x:Name="TagColorFilterComboBox" SelectionChanged="TagColorFilterComboBox_SelectionChanged" Margin="0,7,57,0" Background="#FF232228" HorizontalAlignment="Right" Width="83" VerticalAlignment="Top" BorderBrush="#FFABADB3" Foreground="#FF9C9C9C">
+                    <ComboBoxItem Content="All" Tag="Gray" IsSelected="True"/>
+
+                    <ComboBoxItem Tag="Green">
+                        <StackPanel Orientation="Horizontal">
+                            <Rectangle Width="15" Height="15" Fill="Green" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Green" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ComboBoxItem>
+
+                    <ComboBoxItem Tag="Yellow">
+                        <StackPanel Orientation="Horizontal">
+                            <Rectangle Width="15" Height="15" Fill="Yellow" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Yellow" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ComboBoxItem>
+
+                    <ComboBoxItem Tag="Red">
+                        <StackPanel Orientation="Horizontal">
+                            <Rectangle Width="15" Height="15" Fill="Red" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Red" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ComboBoxItem>
+
+                    <ComboBoxItem Tag="Purple">
+                        <StackPanel Orientation="Horizontal">
+                            <Rectangle Width="15" Height="15" Fill="Purple" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Purple" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ComboBoxItem>
+                </ComboBox>
 
             </Grid>
         </Border>
@@ -294,31 +366,6 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Row="1" Margin="10,0,10,10">
                     <StackPanel x:Name="todoListPanel" />
                 </ScrollViewer>
-            </Grid>
-        </Border>
-        <Border CornerRadius="0,0,4,0" Background="#FF1B1A1F" Margin="0,74,0,10" Width="612" x:Name="sideBar_CloudSaving" HorizontalAlignment="Center" RenderTransformOrigin="0.5,1" Visibility="Hidden">
-            <Border.RenderTransform>
-                <TransformGroup>
-                    <ScaleTransform ScaleX="1"/>
-                    <SkewTransform/>
-                    <RotateTransform/>
-                    <TranslateTransform/>
-                </TransformGroup>
-            </Border.RenderTransform>
-            <Grid HorizontalAlignment="Center" Width="593" Margin="0,10,0,10">
-                <Label Content="Cloud Saving" HorizontalAlignment="Center" VerticalAlignment="Top" Foreground="White" FontSize="20"/>
-                <Label Content="Login" HorizontalAlignment="Center" VerticalAlignment="Top" Foreground="White" Margin="0,42,0,0"/>
-                <Label Content="Note: this will upload your work include &quot;To Do List&quot; and &quot;Scripts&quot;" Foreground="White" Height="24" Width="300" FontSize="10" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-9,0,0,-8"/>
-                <TextBox x:Name="UsernameLogin" HorizontalAlignment="Center" Margin="0,76,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="174"/>
-                <TextBox x:Name="PasswordLogin" HorizontalAlignment="Center" Margin="0,104,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="174"/>
-                <Button x:Name="LoginBtn" Content="Login" HorizontalAlignment="Left" Margin="210,140,0,0" VerticalAlignment="Top" Width="81" Click="LoginBtn_Click"/>
-                <Button x:Name="RegistryBtn" Content="Registry" HorizontalAlignment="Left" Margin="302,140,0,0" VerticalAlignment="Top" Width="82" Click="RegistryBtn_Click" />
-                <Button x:Name="UploadBtn" Content="Upload" HorizontalAlignment="Left" Margin="56,205,0,0" VerticalAlignment="Top" Width="85" Click="UploadBtn_Click"/>
-                <Button x:Name="DownloadBtn" Content="Download" HorizontalAlignment="Left" Margin="263,205,0,0" VerticalAlignment="Top" Width="85" Click="DownloadBtn_Click"/>
-                <Button x:Name="SyncBtn" Content="SyncData" HorizontalAlignment="Left" Margin="467,205,0,0" VerticalAlignment="Top" Width="85" Click="SyncBtn_Click"/>
-                <Label Content="Require reload app!" Foreground="White" Height="24" Width="99" FontSize="10" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="460,0,0,8"/>
-                <Label Content="Username:" HorizontalAlignment="Left" VerticalAlignment="Top" Foreground="White" Margin="144,72,0,0"/>
-                <Label Content="Password:" HorizontalAlignment="Left" VerticalAlignment="Top" Foreground="White" Margin="146,100,0,0"/>
             </Grid>
         </Border>
         <Grid x:Name="AddFileGrid" Background="#80000000" Panel.ZIndex="999" Margin="0,72,-3,0" Visibility="Collapsed">

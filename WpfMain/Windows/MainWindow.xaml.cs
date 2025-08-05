@@ -1,19 +1,57 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
-using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Printing;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Markup;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using Microsoft.Win32;
-using Newtonsoft.Json;
+using System.Windows.Xps;
+using System.Windows.Xps.Packaging;
+
+
 namespace WpfMain
 {
+    public class TodoItem
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public string Description { get; set; }
+        public bool IsDone { get; set; }
+    }
+
+    public static class StringExtensions
+    {
+        public static int LevenshteinDistance(this string s, string t)
+        {
+            int n = s.Length;
+            int m = t.Length;
+            var d = new int[n + 1, m + 1];
+
+            for (int i = 0; i <= n; d[i, 0] = i++) ;
+            for (int j = 0; j <= m; d[0, j] = j++) ;
+
+            for (int i = 1; i <= n; i++)
+            {
+                for (int j = 1; j <= m; j++)
+                {
+                    int cost = (t[j - 1] == s[i - 1]) ? 0 : 1;
+                    d[i, j] = new int[] {
+                    d[i - 1, j] + 1,
+                    d[i, j - 1] + 1,
+                    d[i - 1, j - 1] + cost
+                }.Min();
+                }
+            }
+
+            return d[n, m];
+        }
+    }
     public partial class MainWindow : Window
     {
 
@@ -88,9 +126,7 @@ namespace WpfMain
                 Anims.ObjShiftScriptList(sideBar, sideBar.Width, 738);
                 isListOpen = true;
                 IsToDoListOpen = false;
-                IsCloudSavingOpen = false;
                 Anims.ObjShiftScriptList(sideBar_ToDoList, sideBar_ToDoList.Width, 0);
-                Anims.ObjShiftScriptList(sideBar_CloudSaving, sideBar_CloudSaving.Width, 0);
             }
             else
             {
@@ -100,9 +136,7 @@ namespace WpfMain
         }
         #endregion
 
-        
-
-        #region Main Buttons2
+       
 
         private void mainTabCtrl_MouseDown(object sender, MouseButtonEventArgs e)
         {
@@ -124,9 +158,7 @@ namespace WpfMain
                 Anims.ObjShiftScriptList(sideBar_ToDoList, sideBar_ToDoList.Width, 720);
                 IsToDoListOpen = true;
                 isListOpen = false;
-                IsCloudSavingOpen = false;
                 Anims.ObjShiftScriptList(sideBar, sideBar.Width, 0);
-                Anims.ObjShiftScriptList(sideBar_CloudSaving, sideBar_CloudSaving.Width, 0);
             }
             else
             {
@@ -204,7 +236,7 @@ namespace WpfMain
         }
 
 
-        private void UpdateTodoStatus(Guid id, bool isCompleted, CheckBox check, TextBlock textla)
+        private void UpdateTodoStatus(Guid id, bool isCompleted, CheckBox check, TextBlock textB)
         {
             var item = todos.FirstOrDefault(i => i.Id == id);
             if (item != null)
@@ -214,15 +246,15 @@ namespace WpfMain
             }
             if (check.IsChecked == true)
             {
-                textla.TextDecorations = TextDecorations.Strikethrough;
-                textla.Foreground = Brushes.Gray;
-                textla.Opacity = 0.5;
+                textB.TextDecorations = TextDecorations.Strikethrough;
+                textB.Foreground = Brushes.Gray;
+                textB.Opacity = 0.5;
             }
             else
             {
-                textla.TextDecorations = null;
-                textla.Foreground = Brushes.White;
-                textla.Opacity = 1.0;
+                textB.TextDecorations = null;
+                textB.Foreground = Brushes.White;
+                textB.Opacity = 1.0;
             }
         }
 
@@ -247,177 +279,59 @@ namespace WpfMain
             }
 
         }
-
-        private bool IsCloudSavingOpen = false;
-        private void Cloud_Saving_Click(object sender, RoutedEventArgs e)
-        {
-            if (IsCloudSavingOpen == false)
-            {
-                sideBar_CloudSaving.Visibility = Visibility.Visible;
-                Anims.FadeIn(sideBar_CloudSaving);
-                Anims.ObjShiftScriptList(sideBar_CloudSaving, sideBar_ToDoList.Width, 720);
-                IsCloudSavingOpen = true;
-                IsToDoListOpen = false;
-                isListOpen = false;
-                Anims.ObjShiftScriptList(sideBar, sideBar.Width, 0);
-                Anims.ObjShiftScriptList(sideBar_ToDoList, sideBar_ToDoList.Width, 0);
-            }
-            else
-            {
-                Anims.ObjShiftScriptList(sideBar_CloudSaving, sideBar_CloudSaving.Width, 0);
-                IsCloudSavingOpen = false;
-            }
-        }
-
-        private void LoginBtn_Click(object sender, RoutedEventArgs e)
-        {
-            var user = new { Username = UsernameLogin.Text, Password = PasswordLogin.Text };
-            using (var conn = new SQLiteConnection(connStr))
-            {
-                conn.Open();
-                using (var cmd = new SQLiteCommand("SELECT Id FROM Users WHERE Username=@u AND Password=@p", conn))
-                {
-                    cmd.Parameters.AddWithValue("@u", user.Username);
-                    cmd.Parameters.AddWithValue("@p", user.Password);
-                    var result = cmd.ExecuteScalar();
-                    MessageBox.Show("Logged in : id = " + Convert.ToInt32(result));
-                    currentUserId = Convert.ToInt32(result);
-                }
-            }
-
-        }
-
-        private void RegistryBtn_Click(object sender, RoutedEventArgs e)
-        {
-            string username = UsernameLogin.Text.Trim();
-            string password = PasswordLogin.Text.Trim();
-            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
-            {
-                MessageBox.Show("Username and password are required.");
-                return;
-            }
-
-            using (var conn = new SQLiteConnection(connStr))
-            {
-                conn.Open();
-                var cmd = new SQLiteCommand("INSERT INTO Users (Username, Password) VALUES (@u, @p)", conn);
-                cmd.Parameters.AddWithValue("@u", username);
-                cmd.Parameters.AddWithValue("@p", password);
-                cmd.ExecuteNonQuery();
-                MessageBox.Show("ur id: " + ((int)conn.LastInsertRowId).ToString());
-            }
-        }
-
-        private void UploadBtn_Click(object sender, RoutedEventArgs e)
-        {
-            UploadFile(currentUserId);
-        }
-
-        private void UploadFile(int userId)
-        {
-            string todoJson = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "todo.json");
-            string JsonContent = File.ReadAllText(todoJson);
-
-            string scriptsDir = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Notes");
-            string zipPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Notes.zip");
-            if (File.Exists(zipPath))
-            {
-                File.Delete(zipPath);
-            }
-
-            ZipFile.CreateFromDirectory(scriptsDir, zipPath);
-
-            using (var conn = new SQLiteConnection(connStr))
-            {
-                conn.Open();
-                var checkCmd = new SQLiteCommand("DELETE FROM UserData WHERE UserId = @u", conn);
-                checkCmd.Parameters.AddWithValue("@u", userId);
-                checkCmd.ExecuteNonQuery();
-                using (var cmd = new SQLiteCommand(@"INSERT OR REPLACE INTO UserData (UserId, TodoJson, ZipData) VALUES (@id, @json, @zip)", conn))
-                {
-                    cmd.Parameters.AddWithValue("@id", userId);
-                    cmd.Parameters.AddWithValue("@json", JsonContent);
-                    cmd.Parameters.AddWithValue("@zip", zipPath);
-                    cmd.ExecuteNonQuery();
-                    MessageBox.Show("Uploaded!!!!");
-                }
-            }
-        }
-
-
-        private void DownloadBtn_Click(object sender, RoutedEventArgs e)
-        {
-            string todoJson = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "todo.json");
-            string scriptsDir = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Notes");
-            string folderTextPath = @"D:\Code Projects\WPFapp_PersonalToDoList\WpfMain\bin\Debug\Notes";
-            if (currentUserId < 1) { MessageBox.Show("Please log in first."); return; }
-            using (var conn = new SQLiteConnection(connStr))
-            {
-                conn.Open();
-                using (var cmd = new SQLiteCommand("SELECT TodoJson, ZipData FROM UserData WHERE UserId = @id", conn))
-                {
-                    cmd.Parameters.AddWithValue("@id", currentUserId);
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            string json = reader["TodoJson"].ToString();
-                            byte[] zipData = (byte[])reader["ZipData"];
-
-                            File.WriteAllText(todoJson, json);
-
-                            if (Directory.Exists(scriptsDir))
-                            {
-
-
-
-                                string targetFolder = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Notes");
-
-                                foreach (string file in Directory.GetFiles(targetFolder))
-                                {
-                                    File.Delete(file);
-                                }
-
-                                foreach (string dir in Directory.GetDirectories(targetFolder))
-                                {
-                                    Directory.Delete(dir, true);
-                                }
-                            }
-                            ZipFile.ExtractToDirectory("Notes.zip", folderTextPath);
-                        }
-                    }
-                }
-            }
-        }
-
-        private void SyncBtn_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
-        #endregion
+        
 
         public class NoteModel
         {
             public string FileName { get; set; }
             public string Preview { get; set; }
+            public DateTime DateCreate { get; set; }
             public string FullPath { get; set; }
+            public string TagColor { get; set; }
         }
 
-        private void LoadNotes()
+        private void LoadNotes(string tagFilter = null)
         {
-
             string notesFolder = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Notes");
             var notes = new List<NoteModel>();
+            string searchText = searchTextBox.Text;
 
-            foreach (var file in Directory.GetFiles(notesFolder, "*.txt"))
+            var files = Directory.GetFiles(notesFolder, "*.txt");
+
+            foreach (var file in files)
             {
+                string fileName = System.IO.Path.GetFileName(file);
                 string content = File.ReadAllText(file);
-                notes.Add(new NoteModel
+                var note = new NoteModel
                 {
-                    FileName = System.IO.Path.GetFileName(file),
-                    Preview = content.Length > 100 ? content.Substring(0, 100) + "..." : content,
-                    FullPath = file
-                });
+                    FileName = fileName,
+                    Preview = content.Length > 100 ? content.Substring(0, 50) + "..." : content,
+                    DateCreate = File.GetCreationTime(file),
+                    FullPath = file,
+                    TagColor = LoadNoteTagColor(file)
+                };
+
+                bool isFilenameMatch = false;
+                bool isContentMatch = false;
+
+                if (!string.IsNullOrEmpty(searchText))
+                {
+                    isFilenameMatch = fileName.LevenshteinDistance(searchText) < 6;
+                    isContentMatch = content.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0;
+                }
+                else
+                {
+                    isFilenameMatch = true;
+                    isContentMatch = true;
+                }
+
+                bool isTagMatch = string.IsNullOrEmpty(tagFilter) || tagFilter == "Gray" || note.TagColor == tagFilter;
+
+                if ((isFilenameMatch || isContentMatch) && isTagMatch)
+                {
+                    notes.Add(note);
+                }
+
             }
 
             mainGridView.ItemsSource = notes;
@@ -505,16 +419,212 @@ namespace WpfMain
 
         private void ConfirmAddNoteButton_Click(object sender, RoutedEventArgs e)
         {
-            string notesDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Notes");
+            string notesDir = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Notes");
             string NameFile = AddFileTextBox.Text.Trim() + ".txt";
             if (string.IsNullOrWhiteSpace(NameFile))
             {
                 MessageBox.Show("Filename cannot be empty.");
                 return;
             }
-            string filePath = Path.Combine(notesDir, NameFile);
+            string filePath = System.IO.Path.Combine(notesDir, NameFile);
             File.WriteAllText(filePath, txtbox.Text);
             AddFileGrid.Visibility = Visibility.Collapsed;
+        }
+
+
+        public List<TodoItem> LoadTodoListForPDF()
+        {
+            string todoFilePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "todo.json");
+            if (File.Exists(todoFilePath))
+            {
+                string json = File.ReadAllText(todoFilePath);
+                return JsonConvert.DeserializeObject<List<TodoItem>>(json);
+            }
+            return new List<TodoItem>();
+        }
+
+        private void ExportToPDFBtn_Click(object sender, RoutedEventArgs e)
+        {
+
+            string xpsPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "output.xps");
+
+            if (File.Exists(xpsPath))
+            {
+                File.Delete(xpsPath);
+            }
+
+            string[] txtfiles = Directory.GetFiles(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Notes"), "*.txt");
+
+            FixedDocument doc = new FixedDocument();
+
+            foreach (var file in txtfiles)
+            {
+                string document = File.ReadAllText(file);
+                string filename = System.IO.Path.GetFileNameWithoutExtension(file);
+                var page = createNotePage(filename, document);
+                doc.Pages.Add(page);
+            }
+
+            List<TodoItem> todoList = LoadTodoListForPDF();
+            var todoPage = createTodoListPage(todoList);
+            doc.Pages.Add(todoPage);
+
+            using (var xpsDoc = new XpsDocument(xpsPath, FileAccess.ReadWrite))
+            {
+                XpsDocumentWriter writer = XpsDocument.CreateXpsDocumentWriter(xpsDoc);
+                writer.Write(doc);
+            }
+
+            PrintPDF(xpsPath, @"D:\code\C#\WPFapp_PersonalToDoListRework\WpfMain\bin\Debug\Note.pdf");
+        }
+
+        private PageContent createNotePage(string filename, string text)
+        {
+            var pageContent = new PageContent();
+            var fixedPage = new FixedPage();
+
+            var titleTextBlock = new TextBlock
+            {
+                Text = filename,
+                FontWeight = FontWeights.Bold,
+                FontSize = 18,
+                TextAlignment = TextAlignment.Center,
+                Margin = new Thickness(40, 20, 40, 10)
+            };
+
+            var contentTextBlock = new TextBlock
+            {
+                Text = text,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(40),
+                FontSize = 14,
+                Width = 800
+            };
+
+            FixedPage.SetLeft(titleTextBlock, 0);
+            FixedPage.SetTop(titleTextBlock, 0);
+            fixedPage.Children.Add(titleTextBlock);
+
+            FixedPage.SetLeft(contentTextBlock, 0);
+            FixedPage.SetTop(contentTextBlock, 50);
+            fixedPage.Children.Add(contentTextBlock);
+
+            fixedPage.Width = 816;
+            fixedPage.Height = 1056;
+
+            ((IAddChild)pageContent).AddChild(fixedPage);
+            return pageContent;
+        }
+
+        private PageContent createTodoListPage(List<TodoItem> todoList)
+        {
+            var pageContent = new PageContent();
+            var fixedPage = new FixedPage();
+
+            var stackPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(40) };
+
+            double totalHeight = 0;
+            double pageHeight = 1056;
+
+            var titleTextBlock = new TextBlock
+            {
+                Text = "To-Do List",
+                FontSize = 20,
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(0, 0, 0, 20)
+            };
+            stackPanel.Children.Add(titleTextBlock);
+            totalHeight += titleTextBlock.RenderSize.Height;
+
+            foreach (var todo in todoList)
+            {
+                var taskTextBlock = new TextBlock
+                {
+                    Text = $"{todo.Description} - {(todo.IsDone ? "[Completed]" : "[Not Completed]")}",
+                    FontSize = 14,
+                    Margin = new Thickness(0, 0, 0, 5)
+                };
+                stackPanel.Children.Add(taskTextBlock);
+                totalHeight += taskTextBlock.RenderSize.Height;
+                if (totalHeight > pageHeight)
+                {
+                    fixedPage = new FixedPage();
+                    stackPanel = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(40) };
+                    totalHeight = 0;
+                }
+            }
+
+            fixedPage.Children.Add(stackPanel);
+            fixedPage.Width = 816;
+            fixedPage.Height = 1056;
+
+            ((IAddChild)pageContent).AddChild(fixedPage);
+            return pageContent;
+        }
+
+
+        private void PrintPDF(string filepath, string pdffilePath)
+        {
+            var printDialog = new PrintDialog();
+            var queue = new LocalPrintServer().GetPrintQueue("Microsoft Print to PDF");
+            using (var xpsDoc = new XpsDocument(filepath, FileAccess.Read))
+            {
+                var pages = xpsDoc.GetFixedDocumentSequence().DocumentPaginator;
+                var writer = PrintQueue.CreateXpsDocumentWriter(queue);
+                var printticket = queue.DefaultPrintTicket;
+                printticket.PageMediaSize = new PageMediaSize(PageMediaSizeName.ISOA4);
+
+                queue.UserPrintTicket = printticket;
+                queue.DefaultPrintTicket = printticket;
+
+                writer.Write(pages);
+            }
+        }
+
+        private void searchTextBox_KeyUp(object sender, KeyEventArgs e)
+        {
+            LoadNotes();
+        }
+
+        private void searchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+
+        }
+
+        private void SetTagColor_Click(object sender, RoutedEventArgs e)
+        {
+            var menuItem = sender as MenuItem;
+            var selectedColor = menuItem?.Tag.ToString();
+            var noteToTag = menuItem?.DataContext as NoteModel;
+
+            if (noteToTag == null || string.IsNullOrEmpty(selectedColor)) return;
+
+            noteToTag.TagColor = selectedColor;
+
+            SaveNoteTagColor(noteToTag);
+            LoadNotes();
+        }
+
+        private void SaveNoteTagColor(NoteModel note)
+        {
+            string metadataFilePath = System.IO.Path.ChangeExtension(note.FullPath, ".tag");
+            File.WriteAllText(metadataFilePath, note.TagColor);
+        }
+
+        private void TagColorFilterComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            string selectedTag = (TagColorFilterComboBox.SelectedItem as ComboBoxItem)?.Tag.ToString();
+            LoadNotes(selectedTag);
+        }
+
+        private string LoadNoteTagColor(string filePath)
+        {
+            string metadataFilePath = System.IO.Path.ChangeExtension(filePath, ".tag");
+            if (File.Exists(metadataFilePath))
+            {
+                return File.ReadAllText(metadataFilePath);
+            }
+            return "Gray";
         }
     }
 
